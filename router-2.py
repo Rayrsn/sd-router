@@ -9,29 +9,53 @@ model_name = 'sd-v1-4.ckpt'
 #model_name = '768-v-ema.ckpt'
 
 # function to load model into variable
+
+
 def load_model(model_name):
-  model = torch.load(model_path + '\\' + model_name, map_location='cpu')
-  return model
+    model = torch.load(model_path + '\\' + model_name, map_location='cpu')
+    return model
+
 
 def replace_tensor_with_shape(d):
-  myobj = {}
-  for key, value in d.items():
-    if isinstance(value, dict):
-      d[key] = (replace_tensor_with_shape(value))
-      # replace_tensor_with_shape(value)
-    elif isinstance(value, torch.Tensor):
-      d[key] = str(value.shape)
-    elif isinstance(value, list):
-      d[key] = str(value)
-    else:
-      # print(str(type(d[key])) + ' ' + str(value))
-      d[key] = str(value)
-  return d
+    for key, value in d.items():
+        if isinstance(value, dict):
+            d[key] = (replace_tensor_with_shape(value))
+            # replace_tensor_with_shape(value)
+        elif isinstance(value, torch.Tensor):
+            d[key] = str(value.shape)
+        elif isinstance(value, list):
+            d[key] = str(value)
+        else:
+            # print(str(type(d[key])) + ' ' + str(value))
+            d[key] = str(value)
+    return d
+
+
+# convert to obj
+def to_obj(model):
+    obj = {}
+    for key, value in model.items():
+        if isinstance(key, type):
+            key = str(key)
+        if isinstance(value, torch.Tensor):
+            obj[key] = value.shape
+        elif isinstance(value, dict):
+            obj[key] = to_obj(value)
+        else:
+            obj[key] = value
+    return obj
+
 
 model = replace_tensor_with_shape(load_model(model_name))
 
-json_model = json.dumps(model, indent=4)
-print(json_model)
+
+# write json
+model_obj = to_obj(model)
+model_json = json.dumps(model_obj, indent=4)
+with open('model.json', 'w') as f:
+    f.write(model_json)
+
+# print(model_json)
 
 # check if model can be converted to json, print detailed error
 # try:
